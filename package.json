@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "build": "babel NitroStreams.jsx -o NitroStreams.plugin.js && terser NitroStreams.plugin.js -o NitroStreams.min.plugin.js"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.17.6",
+    "@babel/core": "^7.17.9",
+    "@babel/plugin-transform-react-jsx": "^7.17.3",
+    "babel-loader": "^8.2.4",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "terser": "^5.12.1"
+  }
+}
