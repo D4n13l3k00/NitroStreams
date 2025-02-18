@@ -10,6 +10,7 @@
 module.exports = class NitroStreams {
   uiInjectInterval = null;
   nitroInterval = null;
+  getCurrentUser = BdApi.findModuleByProps("getCurrentUser").getCurrentUser;
 
   showInfo() {
     BdApi.alert(
@@ -60,7 +61,7 @@ module.exports = class NitroStreams {
     );
     let caption = document.getElementsByClassName("NitroStreams-caption");
     if (qualitySettingsContainer !== null && caption.length === 0) {
-      let _h6 = (
+      const _h6 = (
         <h6
           style={{
             marginTop: "10px",
@@ -84,13 +85,12 @@ module.exports = class NitroStreams {
   }
 
   setNitro() {
-    BdApi.findModuleByProps("getCurrentUser").getCurrentUser().premiumType = 2;
+    this.getCurrentUser().premiumType = 2;
   }
 
   start() {
-    this.old_account_type =
-      BdApi.findModuleByProps("getCurrentUser").getCurrentUser().premiumType;
-    this.uiInjectInterval = setInterval(this.caption, 500);
+    this.old_account_type = this.getCurrentUser().premiumType;
+    this.uiInjectInterval = setInterval(this.caption, 1000);
     this.setNitro();
     this.nitroInterval = setInterval(this.setNitro, 5000);
   }
@@ -98,7 +98,6 @@ module.exports = class NitroStreams {
   stop() {
     clearInterval(this.uiInjectInterval);
     clearInterval(this.nitroInterval);
-    BdApi.findModuleByProps("getCurrentUser").getCurrentUser().premiumType =
-      this.old_account_type;
+    this.getCurrentUser().premiumType = this.old_account_type;
   }
 };
