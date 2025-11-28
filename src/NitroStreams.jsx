@@ -10,10 +10,10 @@
 module.exports = class NitroStreams {
   uiInjectInterval = null;
   nitroInterval = null;
-  getCurrentUser = BdApi.findModuleByProps("getCurrentUser").getCurrentUser;
+  getCurrentUser = BdApi.Webpack.getStore("UserStore").getCurrentUser;
 
   showInfo() {
-    BdApi.alert(
+    BdApi.UI.alert(
       "NitroStreams",
       <div
         style={{
@@ -49,9 +49,9 @@ module.exports = class NitroStreams {
   }
 
   load() {
-    if (BdApi.loadData("NitroStreams", "loaded") !== true) {
+    if (BdApi.Data.load("NitroStreams", "loaded") !== true) {
       this.showInfo();
-      BdApi.saveData("NitroStreams", "loaded", true);
+      BdApi.Data.save("NitroStreams", "loaded", true);
     }
   }
 
