@@ -1,6 +1,6 @@
 /**!
  * @name NitroStreams
- * @version 1.2.0
+ * @version 1.2.1
  * @description Acticvation of Nitro Streams
  * @author D4n13l3k00
  *
@@ -43,13 +43,16 @@ module.exports = class NitroStreams {
             marginBottom: "5px",
           }}
         >
-          Made with ❤ by D4n13l3k00
+          <br />
+          Made with ❤ by D4n13l3k00 <br />
+          t.me/D4n13l3k00
         </h6>
       </div>
     );
   }
 
   load() {
+    this.showInfo();
     if (BdApi.Data.load("NitroStreams", "loaded") !== true) {
       this.showInfo();
       BdApi.Data.save("NitroStreams", "loaded", true);
