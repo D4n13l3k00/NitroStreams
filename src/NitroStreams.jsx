@@ -52,7 +52,7 @@ module.exports = class NitroStreams {
   }
 
   load() {
-    this.showInfo();
+    // this.showInfo();
     if (BdApi.Data.load("NitroStreams", "loaded") !== true) {
       this.showInfo();
       BdApi.Data.save("NitroStreams", "loaded", true);
