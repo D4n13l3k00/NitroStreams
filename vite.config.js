@@ -1,88 +1,95 @@
+import { copyFile, mkdir, readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
-import fs from "fs";
-import path from "path";
-import { viteSingleFile } from "vite-plugin-singlefile";
-const pluginConfig = require("./plugin.config.json");
 
-function copyToPlugins() {
+const projectRoot = fileURLToPath(new URL(".", import.meta.url));
+const packageJson = JSON.parse(
+  await readFile(new URL("./package.json", import.meta.url), "utf8"),
+);
+const pluginConfig = JSON.parse(
+  await readFile(new URL("./plugin.config.json", import.meta.url), "utf8"),
+);
+const outputFileName = `${pluginConfig.name}.plugin.js`;
+
+function createMetadataBanner() {
+  const metadata = {
+    name: pluginConfig.name,
+    version: packageJson.version,
+    description: packageJson.description,
+    author: pluginConfig.author,
+    website: pluginConfig.website,
+    source: pluginConfig.source,
+  };
+  const rows = Object.entries(metadata)
+    .filter(([, value]) => value)
+    .map(([key, value]) => ` * @${key} ${value}`);
+
+  return ["/**", ...rows, " */"].join("\n");
+}
+
+function getBetterDiscordPluginsDirectory() {
+  const homeDirectory = process.env.USERPROFILE ?? process.env.HOME;
+  let configDirectory;
+
+  if (process.platform === "win32") {
+    configDirectory = process.env.APPDATA;
+  } else if (process.platform === "darwin") {
+    configDirectory = homeDirectory
+      ? path.join(homeDirectory, "Library", "Application Support")
+      : null;
+  } else {
+    configDirectory =
+      process.env.XDG_CONFIG_HOME ??
+      (homeDirectory ? path.join(homeDirectory, ".config") : null);
+  }
+
+  if (!configDirectory) {
+    throw new Error("Не удалось определить каталог конфигурации пользователя.");
+  }
+
+  return path.join(configDirectory, "BetterDiscord", "plugins");
+}
+
+function copyToBetterDiscord() {
+  let outputDirectory = path.join(projectRoot, "dist");
+
   return {
-    name: "copy-to-plugins",
-    closeBundle() {
-      const userConfig = (() => {
-        if (process.platform === "win32") return process.env.APPDATA;
-        if (process.platform === "darwin")
-          return path.join(process.env.HOME, "Library", "Application Support");
-        if (process.env.XDG_CONFIG_HOME) return process.env.XDG_CONFIG_HOME;
-        return path.join(process.env.HOME, "Library", ".config");
-      })();
-      const bdFolder = path.join(userConfig, "BetterDiscord");
-      const distFolder = path.join(__dirname, "dist");
-      fs.readdir(distFolder, (err, files) => {
-        if (err) {
-          console.error(err);
-          return;
-        }
-        files.forEach((file) => {
-          const outputPath = path.join(bdFolder, "plugins", file);
-          fs.copyFileSync(path.join(distFolder, file), outputPath);
-          console.log(`Copied ${file} to ${outputPath}`);
-        });
-      });
+    name: "copy-to-betterdiscord",
+    apply: "build",
+    configResolved(config) {
+      outputDirectory = path.resolve(config.root, config.build.outDir);
+    },
+    async writeBundle() {
+      const pluginsDirectory = getBetterDiscordPluginsDirectory();
+      const source = path.join(outputDirectory, outputFileName);
+      const destination = path.join(pluginsDirectory, outputFileName);
+
+      await mkdir(pluginsDirectory, { recursive: true });
+      await copyFile(source, destination);
+      console.info(`Copied ${outputFileName} to ${destination}`);
     },
   };
 }
 
-const meta = () => {
-  let meta = "/**!\n";
-  for (const key in pluginConfig) {
-    meta += ` * @${key} ${pluginConfig[key]}\n`;
-  }
-
-  return meta + " */\n";
-};
-
-const base64Loader = {
-  name: "base64-loader",
-  transform(_, id) {
-    const [path, query] = id.split("?");
-    if (query != "base64") return null;
-
-    const data = fs.readFileSync(path);
-    const base64 = data.toString("base64");
-
-    return `export default '${base64}';`;
+export default defineConfig(({ mode }) => ({
+  plugins: mode === "development" ? [copyToBetterDiscord()] : [],
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    target: "es2022",
+    minify: mode === "production",
+    lib: {
+      entry: path.join(projectRoot, "src", "NitroStreams.js"),
+      formats: ["cjs"],
+      fileName: () => outputFileName,
+    },
+    rolldownOptions: {
+      output: {
+        codeSplitting: false,
+        exports: "default",
+        postBanner: createMetadataBanner(),
+      },
+    },
   },
-};
-
-export default defineConfig(({ command, mode }) => {
-
-  let plugins = [base64Loader, viteSingleFile()];
-
-  if (mode === "development") {
-    plugins.push(copyToPlugins());
-  }
-
-  return {
-    esbuild: {
-      jsxFactory: "BdApi.React.createElement",
-      jsxFragment: "BdApi.React.Fragment",
-      banner: meta(),
-    },
-    target: "esnext",
-    build: {
-      outDir: "dist",
-      emptyOutDir: true,
-      lib: {
-        entry: "src/NitroStreams.jsx",
-        formats: ["cjs"],
-      },
-      rollupOptions: {
-        output: {
-          entryFileNames: `[name].plugin.js`,
-          chunkFileNames: `[name].js`,
-        },
-      },
-    },
-    plugins: plugins,
-  }
-});
+}));
