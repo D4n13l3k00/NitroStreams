@@ -2,30 +2,41 @@
 
 # 🍭 NitroStreams
 
-![GitHub License](https://img.shields.io/github/license/D4n13l3k00/NitroStreams)
-![GitHub Last Commit](https://img.shields.io/github/last-commit/D4n13l3k00/NitroStreams)
-![GitHub package.json version](https://img.shields.io/github/package-json/v/D4n13l3k00/NitroStreams)
+[![CI](https://img.shields.io/github/actions/workflow/status/D4n13l3k00/NitroStreams/ci.yml?branch=master&style=flat&label=CI)](https://github.com/D4n13l3k00/NitroStreams/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/D4n13l3k00/NitroStreams?style=flat&label=Release)](https://github.com/D4n13l3k00/NitroStreams/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/D4n13l3k00/NitroStreams/total?style=flat&label=Downloads)](https://github.com/D4n13l3k00/NitroStreams/releases)
+[![License: MIT](https://img.shields.io/github/license/D4n13l3k00/NitroStreams?style=flat&label=License)](LICENSE)
+[![BetterDiscord](https://img.shields.io/badge/BetterDiscord-3E82E5?style=flat)](https://betterdiscord.app)
+
+[Русский](README.md) · [English](README.en.md) · [Українська](README.uk.md) · [Беларуская](README.be.md) · [Polski](README.pl.md) · [Қазақша](README.kk.md)
 
 </div>
 
-Плагин для [BetterDiscord](https://betterdiscord.app), открывающий доступные в клиенте настройки качества трансляции, включая **«Источник · 60 FPS»**.
+Плагин для [BetterDiscord](https://betterdiscord.app), который включает Nitro-качество стримов.
 
 > [!WARNING]
-> Плагин изменяет локальное состояние Discord и не предоставляет серверные возможности Nitro. Фактическое качество для зрителей зависит от ограничений Discord и может остаться на уровне **720p · 30 FPS**.
+> Подписка Nitro не нужна. Фактическое качество у зрителей может зависеть от ограничений Discord.
+>
+> Плагин предоставлен в учебных целях. Используйте на свой риск: возможны ограничения или блокировка аккаунта. Автор не несёт ответственности за последствия использования.
 
-## Установка
+## 📥 Установка
 
 1. Скачайте `NitroStreams.plugin.js` из [последнего релиза](https://github.com/D4n13l3k00/NitroStreams/releases/latest).
-2. Переместите файл в каталог плагинов BetterDiscord.
+2. Переместите файл в каталог плагинов BetterDiscord и включите NitroStreams.
 
-## Разработка
+## 🛠️ Разработка
 
 Требуется [Bun](https://bun.sh) 1.3 или новее.
 
 ```shell
 bun install
+bun run check
 ```
 
-## Лицензия
+`check` запускает ESLint, тесты и production-сборку. Результат: `dist/NitroStreams.plugin.js`.
 
-Проект распространяется по лицензии [MIT](LICENSE).
+`bun run dev` собирает и копирует плагин в локальный BetterDiscord; `bun run dev:watch` повторяет сборку при изменениях.
+
+## 📄 Лицензия
+
+[MIT](LICENSE)

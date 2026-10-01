@@ -31,6 +31,20 @@ jobs:
       - name: Check
         run: bun run check
 
+      - name: Validate release tag
+        if: github.ref_type == 'tag'
+        run: |
+          bun -e '
+            const { version } = await Bun.file("package.json").json();
+            const expectedTag = `v${version}`;
+            const actualTag = process.env.GITHUB_REF_NAME;
+            if (actualTag !== expectedTag) {
+              console.error(`::error::Release tag ${actualTag} does not match package.json version (expected ${expectedTag}).`);
+              process.exit(1);
+            }
+            console.log(`Release tag verified: ${actualTag}`);
+          '
+
   release:
     if: github.ref_type == 'tag'
     needs: verify

@@ -85,6 +85,7 @@ export default defineConfig(({ mode }) => ({
       fileName: () => outputFileName,
     },
     rolldownOptions: {
+      external: ["fs", "path"],
       output: {
         codeSplitting: false,
         exports: "default",
