@@ -23,6 +23,7 @@ function setup({ current = "1.3.1", failRename = false, modify = () => {} } = {}
   const writes = [];
   const notices = [];
   const api = {
+    React: { createElement: (type, props, children) => ({ type, props, children }) },
     Net: { async fetch(_url, options) {
       expect(options.headers["User-Agent"]).toBe(`NitroStreams/${current}`);
       requests++;
@@ -78,6 +79,33 @@ test("older release never downloads or writes a plugin", async () => {
   expect(updater.status.state).toBe("up-to-date");
   expect(requests()).toBe(1);
   expect(writes).toEqual([]);
+});
+
+test("manual check shows release notes without installing until requested", async () => {
+  const { updater, api, writes, requests } = setup({ modify: (candidate) => {
+    candidate.body = "- Fixed stream quality.\n- Added update notifications.";
+  } });
+  const modals = [];
+  api.UI.showConfirmationModal = (...args) => modals.push(args);
+  await updater.check({ manual: true, install: false });
+  expect(updater.status.state).toBe("available");
+  expect(requests()).toBe(1);
+  expect(writes).toEqual([]);
+  expect(modals[0][1].children).toBe("- Fixed stream quality.\n- Added update notifications.");
+  expect(modals[0][1].props.style.whiteSpace).toBe("pre-wrap");
+  await updater.check();
+  expect(updater.status.state).toBe("installed");
+});
+
+test("manual check gives feedback when already current or network fails", async () => {
+  const current = setup({ current: "1.3.2" });
+  await current.updater.check({ manual: true, install: false });
+  expect(current.notices[0].message).toContain("up to date");
+  const failed = setup();
+  failed.api.Net.fetch = async () => { throw new Error("offline"); };
+  await failed.updater.check({ manual: true, install: false });
+  expect(failed.updater.status.state).toBe("failed");
+  expect(failed.notices[0].type).toBe("warning");
 });
 
 test("stop during download prevents all filesystem writes", async () => {

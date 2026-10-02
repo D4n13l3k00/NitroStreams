@@ -10,9 +10,9 @@
 
 [Русский](README.md) · [English](README.en.md) · [Українська](README.uk.md) · [Беларуская](README.be.md) · [Polski](README.pl.md) · [Қазақша](README.kk.md)
 
-</div>
-
 Плагін для [BetterDiscord](https://betterdiscord.app), який вмикає якість трансляцій Nitro.
+
+</div>
 
 > [!WARNING]
 > Підписка Nitro не потрібна. Якість трансляції для глядачів може залежати від обмежень Discord.
@@ -23,6 +23,18 @@
 
 1. Завантажте `NitroStreams.plugin.js` з [останнього релізу](https://github.com/D4n13l3k00/NitroStreams/releases/latest).
 2. Перемістіть файл у каталог плагінів BetterDiscord та увімкніть NitroStreams.
+
+## ⚙️ Налаштування
+
+Відкрийте налаштування NitroStreams у списку плагінів BetterDiscord.
+
+- **Check for updates** — перевірити оновлення вручну. Якщо є нова версія, з’явиться кнопка **Install update**.
+- **What's new** — переглянути опис останнього релізу.
+- **Automatic updates** — увімкнути або вимкнути автооновлення. Перевірка під час запуску та кожні 6 годин; перед встановленням зберігається резервна копія.
+- **Plugin status** — перевірити, чи встановлено перехоплення та чи воно спрацьовувало. Статус не підтверджує якість для глядачів.
+- **Show author credit** — показати або приховати підпис у вікні вибору джерела трансляції.
+
+♥ [Підтримати автора на Boosty](https://boosty.to/d4n13l3k00/donate)
 
 ## 🛠️ Розробка
 

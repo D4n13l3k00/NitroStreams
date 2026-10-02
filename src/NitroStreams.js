@@ -1,6 +1,8 @@
 import ReleaseUpdater from "./updater.js";
 import { version } from "../package.json";
 import { CREDIT_CSS, createCredit } from "./credit.js";
+import { SETTINGS_CSS, settingsRow } from "./settings.js";
+import { donate as donateUrl } from "../plugin.config.json";
 
 const PLUGIN_NAME = "NitroStreams";
 const FEATURE_KEYS = ["q", "X", "G"];
@@ -27,7 +29,9 @@ export default class NitroStreams {
     this.updateIntervalId = null;
     this.generation = 0;
     this.autoUpdate = this.api.Data?.load("autoUpdate") !== false;
+    this.showCredit = this.api.Data?.load("showCredit") !== false;
     this.updater = null;
+    this.refreshSettings = null;
   }
 
   start() {
@@ -39,7 +43,7 @@ export default class NitroStreams {
     this.applyNitro();
     this.injectCredit();
     this.intervalId = this.timers.setInterval(
-      () => { if (this.applyNitro()) this.injectCredit(); },
+      () => { if (this.applyNitro()) this.injectCredit(); this.refreshSettings?.(); },
       REFRESH_INTERVAL_MS,
     );
     this.startUpdater();
@@ -62,6 +66,8 @@ export default class NitroStreams {
     this.api.DOM?.removeStyle();
     this.diagnostics.status = "stopped";
     this.hasReportedError = false;
+    this.refreshSettings?.();
+    this.refreshSettings = null;
   }
 
   observer(mutation) {
@@ -128,6 +134,7 @@ export default class NitroStreams {
         if (plugin.active && features.has(args[0])) {
           plugin.diagnostics.overrides++;
           plugin.diagnostics.status = "observed-overrides";
+          plugin.refreshSettings?.();
           return true;
         }
         return Reflect.apply(original, this, args);
@@ -157,20 +164,31 @@ export default class NitroStreams {
   }
 
   startUpdater() {
-    if (!this.active || !this.autoUpdate || !this.api.Net?.fetch) return;
+    if (!this.active || !this.api.Net?.fetch) return;
     const generation = this.generation;
     const updater = new ReleaseUpdater(this.api, this.meta,
-      () => this.active && this.autoUpdate && this.generation === generation);
+      () => this.active && this.generation === generation);
     this.updater = updater;
-    void updater.check();
-    this.updateIntervalId = this.timers.setInterval(() => void updater.check(), 6 * 60 * 60 * 1_000);
+    if (this.autoUpdate) {
+      void updater.check().finally(() => this.refreshSettings?.());
+      this.updateIntervalId = this.timers.setInterval(
+        () => void updater.check().finally(() => this.refreshSettings?.()), 6 * 60 * 60 * 1_000);
+    }
   }
 
   getSettingsPanel() {
     const panel = document.createElement("div");
-    const label = document.createElement("label");
+    panel.className = "nitrostreams-settings";
+    const style = document.createElement("style");
+    style.textContent = SETTINGS_CSS;
+    const status = document.createElement("p");
+    status.setAttribute("role", "status");
+    const updateStatus = document.createElement("p");
+    updateStatus.setAttribute("role", "status");
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
+    checkbox.className = "ns-toggle";
+    checkbox.setAttribute("role", "switch");
     checkbox.checked = this.autoUpdate;
     checkbox.addEventListener("change", () => {
       this.autoUpdate = checkbox.checked;
@@ -179,11 +197,79 @@ export default class NitroStreams {
       this.updateIntervalId = null;
       this.generation++;
       this.startUpdater();
+      this.refreshSettings?.();
     });
-    label.append(checkbox, " Notify and automatically install stable GitHub releases");
     const details = document.createElement("p");
     details.textContent = "Checks at startup and every 6 hours. A backup is saved before each update.";
-    panel.append(label, details);
+    const creditCheckbox = document.createElement("input");
+    creditCheckbox.type = "checkbox";
+    creditCheckbox.className = "ns-toggle";
+    creditCheckbox.setAttribute("role", "switch");
+    creditCheckbox.checked = this.showCredit;
+    creditCheckbox.addEventListener("change", () => {
+      this.showCredit = creditCheckbox.checked;
+      this.api.Data.save("showCredit", this.showCredit);
+      if (this.showCredit) this.injectCredit();
+      else this.removeCredit();
+    });
+    const creditDetails = document.createElement("p");
+    creditDetails.textContent = "Show the author and repository link next to stream quality.";
+    const actions = document.createElement("div");
+    actions.className = "ns-buttons";
+    const check = document.createElement("button");
+    check.textContent = "Check for updates";
+    check.className = "ns-primary";
+    const notes = document.createElement("button");
+    notes.textContent = "What's new";
+    const install = document.createElement("button");
+    install.textContent = "Install update";
+    install.className = "ns-primary";
+    const runCheck = async (options) => {
+      const updater = this.updater;
+      if (!updater || updater.pending) return;
+      const pending = updater.check(options);
+      this.refreshSettings?.();
+      await pending;
+      this.refreshSettings?.();
+    };
+    check.addEventListener("click", () => void runCheck({ manual: true, install: false }));
+    notes.addEventListener("click", () => this.updater?.showReleaseNotes());
+    install.addEventListener("click", () => void runCheck({ install: true }));
+    this.refreshSettings = () => {
+      const statuses = {
+        stopped: "Stopped", searching: "Looking for Discord's stream permissions…",
+        incompatible: "Could not apply the patch. Check Discord and BetterDiscord compatibility.",
+        "installed-unverified": "Active — permission patch installed; no stream quality check observed yet.",
+        "observed-overrides": "Active — stream feature checks have been overridden.",
+      };
+      status.textContent = statuses[this.diagnostics.status] ?? this.diagnostics.status;
+      const state = this.updater?.status;
+      const updates = { idle: "Not checked yet", checking: "Checking…", downloading: "Downloading…",
+        "up-to-date": "Up to date", available: `Update available: ${state?.version}`,
+        installed: `Installed: ${state?.version}`, failed: "Check or installation failed. Try again later." };
+      updateStatus.textContent = `Version: ${this.meta.version} · Updates: ${updates[state?.state] ?? "Unavailable"}`;
+      check.disabled = !this.active || !this.updater || this.updater.pending;
+      notes.disabled = !this.active || !this.updater?.release;
+      install.hidden = state?.state !== "available";
+      install.disabled = check.disabled;
+    };
+    actions.append(check, notes, install);
+    const updatesRow = settingsRow("Updates", updateStatus, actions);
+    updatesRow.classList.add("ns-section");
+    const donate = document.createElement("a");
+    donate.className = "ns-donate";
+    donate.textContent = "Donate on Boosty";
+    donate.href = donateUrl;
+    donate.target = "_blank";
+    donate.rel = "noopener noreferrer";
+    const supportDetails = document.createElement("p");
+    supportDetails.textContent = "Support NitroStreams development.";
+    const supportRow = settingsRow("Support the author", supportDetails, donate);
+    supportRow.classList.add("ns-section");
+    panel.append(style, settingsRow("Plugin status", status),
+      settingsRow("Automatic updates", details, checkbox),
+      settingsRow("Show author credit", creditDetails, creditCheckbox), updatesRow, supportRow);
+    this.refreshSettings();
     return panel;
   }
 
@@ -202,7 +288,7 @@ export default class NitroStreams {
   }
 
   injectCredit(root = typeof document === "undefined" ? null : document) {
-    if (!this.active || !this.patch || !root) return;
+    if (!this.active || !this.showCredit || !this.patch || !root) return;
 
     const modals = root.matches?.(MODAL_SELECTOR)
       ? [root]

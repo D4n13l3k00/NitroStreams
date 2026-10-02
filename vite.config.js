@@ -20,6 +20,7 @@ function createMetadataBanner() {
     author: pluginConfig.author,
     website: pluginConfig.website,
     source: pluginConfig.source,
+    donate: pluginConfig.donate,
   };
   const rows = Object.entries(metadata)
     .filter(([, value]) => value)

@@ -10,9 +10,9 @@
 
 [Русский](README.md) · [English](README.en.md) · [Українська](README.uk.md) · [Беларуская](README.be.md) · [Polski](README.pl.md) · [Қазақша](README.kk.md)
 
-</div>
-
 A [BetterDiscord](https://betterdiscord.app) plugin that enables Nitro stream quality.
+
+</div>
 
 > [!WARNING]
 > No Nitro subscription required. Viewer quality may still depend on Discord's limits.
@@ -23,6 +23,18 @@ A [BetterDiscord](https://betterdiscord.app) plugin that enables Nitro stream qu
 
 1. Download `NitroStreams.plugin.js` from the [latest release](https://github.com/D4n13l3k00/NitroStreams/releases/latest).
 2. Move it into your BetterDiscord plugins folder and enable NitroStreams.
+
+## ⚙️ Settings
+
+Open NitroStreams settings from the BetterDiscord plugin list.
+
+- **Check for updates** — check manually. If a new version is available, an **Install update** button appears.
+- **What's new** — view the latest release notes.
+- **Automatic updates** — enable or disable automatic updates. Checks run at startup and every 6 hours; a backup is saved before installation.
+- **Plugin status** — see whether the permission patch is installed and has been used. This does not confirm viewer quality.
+- **Show author credit** — show or hide the credit in the stream source picker.
+
+♥ [Support the author on Boosty](https://boosty.to/d4n13l3k00/donate)
 
 ## 🛠️ Development
 

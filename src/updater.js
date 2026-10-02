@@ -44,7 +44,7 @@ export default class ReleaseUpdater {
     this.status = { state: "idle" };
   }
 
-  async check() {
+  async check({ manual = false, install = true } = {}) {
     if (this.pending || !this.isActive() || !this.api.Net?.fetch) return;
     this.pending = true;
     this.status = { state: "checking" };
@@ -56,14 +56,21 @@ export default class ReleaseUpdater {
       if (!response.ok) throw new Error(`GitHub HTTP ${response.status}`);
       const release = await response.json();
       if (!this.isActive()) return;
+      this.release = { version: release.tag_name, notes: typeof release.body === "string" ? release.body : "" };
+      if (manual) this.showReleaseNotes();
       if (!newerVersion(release.tag_name, this.meta.version) || release.draft || release.prerelease) {
         this.status = { state: "up-to-date" };
+        if (manual) this.api.UI.showToast("NitroStreams is up to date.", { type: "success" });
         return;
       }
       const asset = release.assets?.find((entry) => entry.name === ASSET_NAME);
       const expectedUrl = `https://github.com/D4n13l3k00/NitroStreams/releases/download/${release.tag_name}/${ASSET_NAME}`;
       if (!asset || asset.browser_download_url !== expectedUrl || asset.size > MAX_SIZE) {
         throw new Error("Unexpected release asset or download URL");
+      }
+      if (!install) {
+        this.status = { state: "available", version: release.tag_name };
+        return;
       }
       installing = true;
       this.status = { state: "downloading", version: release.tag_name };
@@ -97,12 +104,23 @@ export default class ReleaseUpdater {
     } catch (error) {
       this.status = { state: "failed", reason: error.message };
       this.api.Logger.warn("Could not check or install the update.", error);
-      if (installing && this.isActive()) {
-        this.api.UI.showToast("NitroStreams update failed. Your current plugin has been kept.", { type: "warning" });
+      if ((installing || manual) && this.isActive()) {
+        this.api.UI.showToast(installing ? "NitroStreams update failed. Your current plugin has been kept." : "Could not check for NitroStreams updates. Try again later.", { type: "warning" });
       }
     } finally {
       this.pending = false;
       if (this.isActive()) this.api.Data?.save("updateDiagnostics", this.status);
     }
+  }
+
+  showReleaseNotes() {
+    if (!this.release || !this.isActive()) return;
+    const notes = this.release.notes || "No release notes provided.";
+    const content = this.api.React.createElement("div", {
+      style: { whiteSpace: "pre-wrap", overflowWrap: "anywhere", lineHeight: "1.5" },
+    }, notes);
+    this.api.UI.showConfirmationModal?.(`NitroStreams ${this.release.version} — What's new`,
+      content,
+      { confirmText: "Close", cancelText: null });
   }
 }

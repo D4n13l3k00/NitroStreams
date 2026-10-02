@@ -10,9 +10,9 @@
 
 [Русский](README.md) · [English](README.en.md) · [Українська](README.uk.md) · [Беларуская](README.be.md) · [Polski](README.pl.md) · [Қазақша](README.kk.md)
 
-</div>
-
 Wtyczka do [BetterDiscord](https://betterdiscord.app), która odblokowuje jakość transmisji Nitro.
+
+</div>
 
 > [!WARNING]
 > Subskrypcja Nitro nie jest wymagana. Jakość transmisji u widzów może zależeć od ograniczeń Discorda.
@@ -23,6 +23,18 @@ Wtyczka do [BetterDiscord](https://betterdiscord.app), która odblokowuje jakoś
 
 1. Pobierz `NitroStreams.plugin.js` z [najnowszego wydania](https://github.com/D4n13l3k00/NitroStreams/releases/latest).
 2. Przenieś plik do folderu wtyczek BetterDiscord i włącz NitroStreams.
+
+## ⚙️ Ustawienia
+
+Otwórz ustawienia NitroStreams na liście wtyczek BetterDiscord.
+
+- **Check for updates** — sprawdź aktualizacje ręcznie. Gdy dostępna jest nowa wersja, pojawi się przycisk **Install update**.
+- **What's new** — zobacz opis najnowszego wydania.
+- **Automatic updates** — włącz lub wyłącz automatyczne aktualizacje. Sprawdzanie odbywa się przy uruchomieniu i co 6 godzin; przed instalacją zapisywana jest kopia zapasowa.
+- **Plugin status** — sprawdź, czy modyfikacja kontroli uprawnień jest aktywna i czy została użyta. Status nie potwierdza jakości u widzów.
+- **Show author credit** — pokaż lub ukryj podpis autora w oknie wyboru źródła transmisji.
+
+♥ [Wesprzyj autora na Boosty](https://boosty.to/d4n13l3k00/donate)
 
 ## 🛠️ Rozwój
 

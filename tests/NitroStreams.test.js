@@ -8,6 +8,7 @@ function setup(declarations = null) {
   const callbacks = new Map();
   const errors = [];
   const api = {
+    React: { createElement: (type, props, children) => ({ type, props, children }) },
     Webpack: {
       Filters: { bySource: (...needles) => {
         expect(needles).toEqual(["canStreamQuality"]);
@@ -29,12 +30,40 @@ function setup(declarations = null) {
     setInterval(callback) { callbacks.set(1, callback); return 1; },
     clearInterval(id) { callbacks.delete(id); },
   });
-  return { plugin, callbacks, errors, load(value) { current = value; } };
+  return { plugin, api, callbacks, errors, load(value) { current = value; } };
 }
 
 function permissions(original = () => false) {
   return { e_: original, q: {}, X: {}, G: {} };
 }
+
+test("manual updater remains available with automatic updates disabled", async () => {
+  const { plugin, api, callbacks } = setup(permissions());
+  let requests = 0;
+  api.Net = { fetch: async () => {
+    requests++;
+    return { ok: true, json: async () => ({ tag_name: "v1.4.0", body: "Current release" }) };
+  } };
+  plugin.autoUpdate = false;
+  plugin.start();
+  expect(requests).toBe(0);
+  expect(callbacks.size).toBe(1);
+  await plugin.updater.check({ manual: true, install: false });
+  expect(requests).toBe(1);
+  expect(plugin.updater.status.state).toBe("up-to-date");
+  plugin.stop();
+  expect(plugin.updater.isActive()).toBe(false);
+});
+
+test("disabled author credit is persisted and never inspects the source picker", () => {
+  const { api } = setup(permissions());
+  api.Data = { load: (key) => key === "showCredit" ? false : undefined };
+  const plugin = new NitroStreams();
+  expect(plugin.showCredit).toBe(false);
+  plugin.active = true;
+  plugin.patch = {};
+  plugin.injectCredit({ querySelectorAll() { throw new Error("Must not inject disabled credit"); } });
+});
 
 test("only q/X/G bypass the check; other calls preserve context and all arguments", () => {
   const context = {};
