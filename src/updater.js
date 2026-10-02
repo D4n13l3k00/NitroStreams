@@ -87,15 +87,15 @@ export default class ReleaseUpdater {
         throw new Error("Invalid installed plugin filename");
       }
       const destination = path.join(this.api.Plugins.folder, filename);
-      const temporary = `${destination}.update.tmp`;
       const backup = `${destination}.bak`;
       const original = this.fs.readFileSync(destination, "utf8");
       this.fs.writeFileSync(backup, original, "utf8");
       try {
-        this.fs.writeFileSync(temporary, text, "utf8");
-        this.fs.renameSync(temporary, destination);
+        // Preserve the file: BetterDiscord's rename handler unloads and disables it.
+        // Writing the existing file triggers its change handler, which preserves enablement.
+        this.fs.writeFileSync(destination, text, "utf8");
       } catch (error) {
-        if (this.fs.existsSync(temporary)) this.fs.unlinkSync(temporary);
+        this.fs.writeFileSync(destination, original, "utf8");
         throw error;
       }
       this.status = { state: "installed", version };

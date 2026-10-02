@@ -14,7 +14,7 @@ function release() {
   }] };
 }
 
-function setup({ current = "1.3.1", failRename = false, modify = () => {} } = {}) {
+function setup({ current = "1.3.1", failWrite = false, modify = () => {} } = {}) {
   const candidate = release();
   modify(candidate);
   let active = true;
@@ -35,9 +35,16 @@ function setup({ current = "1.3.1", failRename = false, modify = () => {} } = {}
   };
   const fs = {
     readFileSync: () => "original plugin",
-    writeFileSync(filename, contents) { writes.push(filename); files.set(filename, contents); },
+    writeFileSync(filename, contents) {
+      writes.push(filename);
+      if (failWrite && filename.endsWith(".plugin.js")) {
+        failWrite = false;
+        files.set(filename, "partial write");
+        throw new Error("write failed");
+      }
+      files.set(filename, contents);
+    },
     renameSync(from, to) {
-      if (failRename) throw new Error("rename failed");
       files.set(to, files.get(from)); files.delete(from);
     },
     existsSync: (filename) => files.has(filename),
@@ -61,12 +68,13 @@ test("digest and metadata must both match the GitHub release", async () => {
   await expect(validateAsset(release(), text.replace("NitroStreams", "OtherStreams"))).rejects.toThrow("metadata");
 });
 
-test("new stable release sends notifications and installs with backup and atomic rename", async () => {
+test("new stable release installs with backup without renaming the active plugin", async () => {
   const { updater, files, writes, notices, requests } = setup();
   await updater.check();
   expect(updater.status.state).toBe("installed");
   expect(requests()).toBe(2);
   expect(writes[0].endsWith(".bak")).toBe(true);
+  expect(writes[1].endsWith(".plugin.js")).toBe(true);
   expect([...files.entries()].find(([key]) => key.endsWith(".bak"))?.[1]).toBe("original plugin");
   expect([...files.entries()].find(([key]) => key.endsWith(".plugin.js"))?.[1]).toBe(text);
   expect([...files.keys()].some((key) => key.endsWith(".tmp"))).toBe(false);
@@ -116,11 +124,12 @@ test("stop during download prevents all filesystem writes", async () => {
   expect(notices.some((notice) => notice.type === "success")).toBe(false);
 });
 
-test("failed rename leaves original untouched and removes temporary file", async () => {
-  const { updater, files } = setup({ failRename: true });
+test("failed write restores the original plugin from memory and keeps the backup", async () => {
+  const { updater, files } = setup({ failWrite: true });
   await updater.check();
   expect(updater.status.state).toBe("failed");
-  expect([...files.keys()].every((key) => key.endsWith(".bak"))).toBe(true);
+  expect([...files.entries()].find(([key]) => key.endsWith(".plugin.js"))?.[1]).toBe("original plugin");
+  expect([...files.entries()].find(([key]) => key.endsWith(".bak"))?.[1]).toBe("original plugin");
 });
 
 test("unexpected release download URL is refused", async () => {
@@ -139,10 +148,11 @@ test("concurrent update checks share a single download", async () => {
   expect(requests()).toBe(2);
 });
 
-test("atomic update replaces an existing file on the host filesystem", async () => {
+test("update preserves the active file identity for BetterDiscord's change watcher", async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "nitrostreams-update-test-"));
   const destination = path.join(directory, "NitroStreams.plugin.js");
   fs.writeFileSync(destination, "original plugin", "utf8");
+  const inode = fs.statSync(destination).ino;
   const { api } = setup();
   api.Plugins.folder = directory;
   const updater = new ReleaseUpdater(api, { version: "1.3.1" }, () => true);
@@ -150,6 +160,7 @@ test("atomic update replaces an existing file on the host filesystem", async () 
     await updater.check();
     expect(updater.status.state).toBe("installed");
     expect(fs.readFileSync(destination, "utf8")).toBe(text);
+    expect(fs.statSync(destination).ino).toBe(inode);
     expect(fs.readFileSync(`${destination}.bak`, "utf8")).toBe("original plugin");
     expect(fs.existsSync(`${destination}.update.tmp`)).toBe(false);
   } finally {
