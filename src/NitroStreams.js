@@ -1,4 +1,5 @@
 import ReleaseUpdater from "./updater.js";
+import { patchStreamQuality } from "./streamQuality.js";
 import { version } from "../package.json";
 import { CREDIT_CSS, createCredit } from "./credit.js";
 import { SETTINGS_CSS, settingsRow } from "./settings.js";
@@ -97,6 +98,14 @@ export default class NitroStreams {
     if (!this.active) return false;
     if (this.patch) return true;
     try {
+      const streamPatch = patchStreamQuality(this.api, this.diagnostics, () => this.active);
+      if (streamPatch) {
+        this.patch = streamPatch;
+        this.hasReportedError = false;
+        this.api.Data?.save("diagnostics", this.getDiagnostics());
+        this.api.Logger.info("Stream quality bindings installed; awaiting Discord calls.");
+        return true;
+      }
       const sourceFilter = this.api.Webpack.Filters.bySource(
         "canStreamQuality",
       );
@@ -240,7 +249,7 @@ export default class NitroStreams {
         stopped: "Stopped", searching: "Looking for Discord's stream permissions…",
         incompatible: "Could not apply the patch. Check Discord and BetterDiscord compatibility.",
         "installed-unverified": "Active — permission patch installed; no stream quality check observed yet.",
-        "observed-overrides": "Active — stream feature checks have been overridden.",
+        "observed-overrides": "Stream checks observed — local overrides returned. Stream operation is not verified.",
       };
       status.textContent = statuses[this.diagnostics.status] ?? this.diagnostics.status;
       const state = this.updater?.status;
@@ -278,6 +287,10 @@ export default class NitroStreams {
     this.patch = null;
     if (!patch) return;
     try {
+      if (patch.restore) {
+        patch.restore();
+        return;
+      }
       if (patch.declarations.e_ === patch.wrapper) {
         patch.declarations.e_ = patch.original;
         if (patch.declarations.e_ !== patch.original) throw new Error("Restoration failed");

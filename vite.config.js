@@ -25,6 +25,8 @@ function createMetadataBanner() {
   const rows = Object.entries(metadata)
     .filter(([, value]) => value)
     .map(([key, value]) => ` * @${key} ${value}`);
+  rows.splice(rows.findIndex(row => row.startsWith(" * @author ")) + 1, 0,
+    " * Compatibility fix by Collapxe-prime (https://github.com/Collapxe-prime).");
 
   return ["/**", ...rows, " */"].join("\n");
 }
