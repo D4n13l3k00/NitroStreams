@@ -15,6 +15,7 @@ function setup(declarations = null) {
         return () => true;
       } },
       getModule(filter, options) {
+        if (!options.raw) return undefined;
         expect(options.raw).toBe(true);
         expect(options.first).toBe(false);
         const module = { id: 42, declarations: current };
@@ -163,4 +164,32 @@ test("ambiguous feature identities are refused", () => {
   expect(plugin.patch).toBeNull();
   expect(plugin.getDiagnostics().reason).toContain("ambiguous");
   plugin.stop();
+});
+
+test("start and stop patch modern stream bindings even when premium checks short-circuit", () => {
+  let featureCalls = 0;
+  const original = (_quality, user) => user.premiumType === 2 && (++featureCalls > 0);
+  const declarations = { renamed: original };
+  const exported = Object.freeze({ canStreamQuality: original });
+  declarations.api = exported;
+  const { plugin, api } = setup(declarations);
+  api.Webpack.getModule = (filter, options) => {
+    if (options.raw) {
+      filter(exported, { id: 678022, declarations });
+      return;
+    }
+    return filter(exported) ? exported : undefined;
+  };
+  const user = { premiumType: 0 };
+  expect(original("high", user)).toBe(false);
+  plugin.start();
+  expect(plugin.getDiagnostics().status).toBe("installed-unverified");
+  expect(plugin.getDiagnostics().calls).toBe(0);
+  expect(declarations.api.canStreamQuality("high", user)).toBe(true);
+  expect(declarations.api.canStreamQuality("mid", user)).toBe(true);
+  expect(featureCalls).toBe(0);
+  expect(plugin.getDiagnostics().overrides).toBe(2);
+  plugin.stop();
+  expect(declarations.renamed).toBe(original);
+  expect(declarations.api).toBe(exported);
 });
